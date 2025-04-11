@@ -1,4 +1,4 @@
-# Shape Identification Game 🔷 🔺 ⭐
+# I Spy a Shape 🔷 🔺 ⭐
 
 > An interactive educational game to help children learn geometric shapes through fun matching challenges.
 
@@ -12,7 +12,6 @@
 - [Overview](#overview)
 - [Game Configuration](#game-configuration)
 - [Features](#features)
-- [Demo](#demo)
 - [Installation](#installation)
 - [How to Play](#how-to-play)
 - [Game Modes](#game-modes)
@@ -20,12 +19,15 @@
 - [Contributing](#contributing)
 - [License](#license)
 - [Acknowledgements](#acknowledgements)
+- [Recent Updates](#recent-updates)
 
 ## 🔍 Overview
 
-The Shape Identification Game is a web-based educational game designed to help children recognize and identify various geometric shapes. With multiple difficulty levels and game modes, it offers an engaging way for kids to learn shape recognition through interactive gameplay.
+I Spy a Shape is a web-based educational game designed to help children recognize and identify various geometric shapes. With multiple difficulty levels and game modes, it offers an engaging way for kids to learn shape recognition through interactive gameplay.
 
 Built using vanilla JavaScript, HTML5, and CSS3, this game runs entirely in the browser without requiring a server or external dependencies.
+
+Note: This project was built entirely using prompt templates and Github Copilot Agent (Claude 3.7)
 
 ## ⚙️ Game Configuration
 
@@ -92,7 +94,7 @@ hard: {
     timePenalty: 7,
     distinctColors: false,
     rotationRange: { min: 0, max: 359 },
-    movementSpeed: { min: 0.05, max: 0.25 } // Shapes move in hard mode
+    movementSpeed: { min: 0.05, max: 0.15 } // Shapes move in hard mode
 }
 ```
 
@@ -133,24 +135,15 @@ Example: To make the game easier, you could increase the `maxAttempts` value or 
 - **Accessibility Features**: ARIA attributes and WCAG compliant color schemes
 - **Local Leaderboards**: Save your high scores across different game modes
 
-## 🎮 Demo
-
-[View Live Demo](https://yourusername.github.io/shape-identification-game) *(Replace with your actual demo link)*
-
-![Gameplay Screenshot](path/to/screenshot.png) *(Add an actual screenshot of your game)*
-
 ## 💻 Installation
 
 No installation required! As a completely client-side application, you can:
 
-### Option 1: Play online
-Visit [https://yourusername.github.io/shape-identification-game](https://yourusername.github.io/shape-identification-game) *(Replace with your actual URL)*
-
-### Option 2: Run locally
+### Run locally
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/shape-identification-game.git
+git clone https://github.com/webdev-guy/shape-identification-game.git
 ```
 
 2. Navigate to the project directory:
@@ -235,6 +228,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Sound effects from [Freesound.org](https://freesound.org)
 - Inspiration from educational psychology research on shape recognition in early childhood development
 
----
+## 🆕 Recent Updates
 
-Made with ❤️ by [Your Name] - April 2025
+- **Dynamic Tooltips**: Tooltips now update based on the selected game mode to show only relevant information
+- **Improved Leaderboard**: Redesigned with modern toggle buttons and better horizontal alignment
+- **Condensed UI**: Game options have been streamlined for better space utilization
+- **Modal Improvements**: Fixed height and proper padding for better visual appearance
+- **Reduced Redundancy**: Removed duplicate header elements for cleaner UI
+- **Diamond Shape Enhancement**: Improved appearance to look more like a true diamond
+- **Accessibility**: Enhanced with ARIA attributes for better screen reader support
+- **Game Controls**: Added quit button functionality during gameplay
