@@ -25,13 +25,13 @@
 
 I Spy a Shape is a web-based educational game designed to help children recognize and identify various geometric shapes. With multiple difficulty levels and game modes, it offers an engaging way for kids to learn shape recognition through interactive gameplay.
 
-Built using vanilla JavaScript, HTML5, and CSS3, this game runs entirely in the browser without requiring a server or external dependencies.
+Built using vanilla JavaScript with ES6 modules, HTML5, and CSS3, this game runs entirely in the browser with a minimal local server requirement for the ES6 module functionality.
 
 Note: This project was built entirely using prompt templates and Github Copilot Agent (Claude 3.7)
 
 ## ⚙️ Game Configuration
 
-You can customize various game behaviors by modifying the configuration values in the `js/game.js` file. Here's a breakdown of the available configuration options:
+You can customize various game behaviors by modifying the configuration values in the `js/modules/config.js` file. Here's a breakdown of the available configuration options:
 
 ### Basic Configuration
 
@@ -116,8 +116,8 @@ confetti: {
 
 To modify any of these settings:
 
-1. Open the `js/game.js` file in a text editor
-2. Locate the `gameConfig` object at the top of the file
+1. Open the `js/modules/config.js` file in a text editor
+2. Locate the `gameConfig` object
 3. Change the desired values
 4. Save the file and refresh the game in your browser
 
@@ -134,12 +134,13 @@ Example: To make the game easier, you could increase the `maxAttempts` value or 
 - **Responsive Design**: Works on desktops, tablets, and mobile devices
 - **Accessibility Features**: ARIA attributes and WCAG compliant color schemes
 - **Local Leaderboards**: Save your high scores across different game modes
+- **Modular Code Structure**: ES6 modules for better organization and maintainability
 
 ## 💻 Installation
 
-No installation required! As a completely client-side application, you can:
+As the game uses ES6 modules, a local development server is required to run the application:
 
-### Run locally
+### Option 1: Using VS Code and Live Server (Recommended)
 
 1. Clone this repository:
 ```bash
@@ -151,9 +152,51 @@ git clone https://github.com/webdev-guy/shape-identification-game.git
 cd shape-identification-game
 ```
 
-3. Open `index.html` in your browser:
-   - Double-click the file
-   - Or use a local development server like [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer)
+3. Open the project in VS Code:
+```bash
+code .
+```
+
+4. Install the Live Server extension in VS Code if you don't have it already.
+
+5. Right-click on `index.html` and select "Open with Live Server".
+
+6. The game will open in your default browser.
+
+### Option 2: Using Python's built-in HTTP server
+
+1. Clone this repository as shown above.
+
+2. Navigate to the project directory.
+
+3. Start a Python HTTP server:
+```bash
+# For Python 3.x
+python -m http.server
+
+# For Python 2.x
+python -m SimpleHTTPServer
+```
+
+4. Open your browser and go to `http://localhost:8000`.
+
+### Option 3: Using Node.js http-server
+
+1. Install http-server globally if you don't have it:
+```bash
+npm install -g http-server
+```
+
+2. Navigate to the project directory.
+
+3. Start the server:
+```bash
+http-server
+```
+
+4. Open your browser and go to the URL shown in the terminal.
+
+> **Note**: Simply opening the HTML file directly will not work due to ES6 module security restrictions in browsers.
 
 ## 🎯 How to Play
 
@@ -180,7 +223,7 @@ This project is built with:
 
 - **HTML5** for structure
 - **CSS3** for styling and animations
-- **Vanilla JavaScript** for game logic
+- **Vanilla JavaScript** with ES6 modules for game logic
 
 ### Project Structure
 
@@ -190,13 +233,34 @@ shape-identification-game/
 ├── css/
 │   └── styles.css      # All styling and animations
 ├── js/
-│   └── game.js         # Core game mechanics and logic
+│   ├── game.js         # Main JS file that imports modules
+│   └── modules/
+│       ├── config.js       # Game configuration settings
+│       ├── elements.js     # DOM element references
+│       ├── events.js       # Event handlers and UI interactions
+│       ├── gameLogic.js    # Core game mechanics
+│       ├── gameState.js    # Game state management
+│       ├── rendering.js    # Shape rendering functions
+│       └── utils.js        # Utility functions
+├── .vscode/            # VS Code configuration
+│   └── settings.json   # Live Server settings
 ├── audio/              # Sound effects
 │   ├── correct.mp3     # Played on correct match
 │   ├── wrong.mp3       # Played on incorrect match
 │   └── gameover.mp3    # Played when game ends
 └── README.md           # This documentation
 ```
+
+### Module Responsibilities
+
+- **config.js**: Contains all game configuration settings like colors, shapes, difficulties
+- **gameState.js**: Maintains the game state object and reset functionality
+- **elements.js**: Stores references to DOM elements and initializes audio settings
+- **utils.js**: Houses utility functions like random number generation
+- **rendering.js**: Handles all shape rendering and canvas operations
+- **gameLogic.js**: Contains core game mechanics like scoring and game flow
+- **events.js**: Manages all event listeners and UI interactions
+- **game.js**: Main entry point that orchestrates the modules
 
 ## 🤝 Contributing
 
@@ -230,11 +294,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆕 Recent Updates
 
-- **Dynamic Tooltips**: Tooltips now update based on the selected game mode to show only relevant information
-- **Improved Leaderboard**: Redesigned with modern toggle buttons and better horizontal alignment
+- **Modular JavaScript Structure**: Refactored the codebase into ES6 modules for better organization and maintainability
+- **Module System Support**: Added proper module loading with type="module" in HTML
+- **Fixed Dependencies**: Resolved circular dependencies between modules
+- **Live Server Configuration**: Added .vscode settings for consistent development environment
+- **Fixed Encoding Issues**: Addressed character encoding problems for better compatibility
+- **Dynamic Tooltips**: Tooltips now update based on the selected game mode
+- **Improved Leaderboard**: Redesigned with modern toggle buttons and better alignment
 - **Condensed UI**: Game options have been streamlined for better space utilization
-- **Modal Improvements**: Fixed height and proper padding for better visual appearance
-- **Reduced Redundancy**: Removed duplicate header elements for cleaner UI
-- **Diamond Shape Enhancement**: Improved appearance to look more like a true diamond
-- **Accessibility**: Enhanced with ARIA attributes for better screen reader support
+- **Enhanced Diamond Shape**: Improved appearance to look more like a true diamond
+- **Accessibility Improvements**: Enhanced with ARIA attributes for better screen reader support
 - **Game Controls**: Added quit button functionality during gameplay
