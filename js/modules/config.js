@@ -60,14 +60,14 @@ export const gameConfig = {
     // Tooltip content for different game modes
     tooltips: {
         classic: {
-            easy: "4-8 shapes<br>Distinct colors<br>Minimal rotation<br>3 attempts per round<br>Attempts reset after correct matches",
-            medium: "6-12 shapes<br>Similar colors allowed<br>More rotation<br>3 attempts per round<br>Attempts reset after correct matches",
-            hard: "10-18 shapes<br>Similar colors<br>Full rotation<br>Shapes move slowly<br>3 attempts total (no reset)"
+            easy: "4-8 shapes<br>Match shape only (color doesn't matter)<br>Distinct colors<br>Minimal rotation<br>3 attempts per round<br>Attempts reset after correct matches",
+            medium: "6-12 shapes<br>Match both shape AND color<br>Similar colors allowed<br>More rotation<br>3 attempts per round<br>Attempts reset after correct matches",
+            hard: "10-18 shapes<br>Match both shape AND color<br>Similar colors<br>Full rotation<br>Shapes move slowly<br>3 attempts total (no reset)"
         },
         timed: {
-            easy: "4-8 shapes<br>90 seconds time limit<br>Distinct colors<br>Minimal rotation<br>+5s per correct match<br>+8s for color match",
-            medium: "6-12 shapes<br>60 seconds time limit<br>Similar colors allowed<br>More rotation<br>+3s per correct match<br>+5s for color match",
-            hard: "10-18 shapes<br>45 seconds time limit<br>Similar colors<br>Full rotation<br>Shapes move slowly<br>+2s per correct match<br>+3s for color match"
+            easy: "4-8 shapes<br>Match shape only (color doesn't matter)<br>90 seconds time limit<br>Distinct colors<br>Minimal rotation<br>+5s per correct match<br>+8s for color match",
+            medium: "6-12 shapes<br>Match both shape AND color<br>60 seconds time limit<br>Similar colors allowed<br>More rotation<br>+3s per correct match<br>+5s for color match",
+            hard: "10-18 shapes<br>Match both shape AND color<br>45 seconds time limit<br>Similar colors<br>Full rotation<br>Shapes move slowly<br>+2s per correct match<br>+3s for color match"
         }
     },
 

@@ -1,39 +1,21 @@
-import { elements, initAudioSettings, initializeConfettiContext } from './modules/elements.js';
+import gameState from './modules/gameState.js';
+import { elements } from './modules/elements.js';
+import { gameConfig } from './modules/config.js';
+import { initEventListeners, showSetupModal } from './modules/events.js';
 import { resizeConfettiCanvas } from './modules/rendering.js';
-import { loadHighScores } from './modules/gameLogic.js';
-import {
-    initEventListeners,
-    showSetupModal,
-    updateDifficultyTooltips
-} from './modules/events.js';
-import { gameState } from './modules/gameState.js';
 
-// Global confetti context
-const confettiCtx = initializeConfettiContext();
-
-// Initialize game
-function initGame() {
-    // Show setup modal
-    showSetupModal();
-
-    // Set initial tooltips based on default game mode
-    updateDifficultyTooltips(gameState.currentMode);
-
-    // Init event listeners
+// Initialize the application when DOM content is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('Game initializing...');
+    
+    // Initialize event listeners for all buttons and controls
     initEventListeners();
-
-    // Load high scores
-    loadHighScores();
-}
-
-// Initialize the game when the page loads
-window.addEventListener('load', () => {
-    // Initialize confetti canvas dimensions
+    
+    // Set up the confetti canvas for victory animations
     resizeConfettiCanvas();
-
-    // Initialize audio settings
-    initAudioSettings();
-
-    // Initialize game
-    initGame();
+    
+    // Show the game setup modal to start
+    showSetupModal();
+    
+    console.log('Game initialized and ready to play!');
 });

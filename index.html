@@ -10,18 +10,41 @@
 
 <body>
     <div class="game-container">
-        <header>
-            <div class="score-container">
-                <p>Score: <span id="score">0</span></p>
-                <p>Attempts remaining: <span id="attempts">3</span></p>
-                <p id="timer-display" class="hidden">Time: <span id="timer">60</span>s</p>
-                <p><button id="quit-game-button" class="quit-button" aria-label="Stop the current game">Stop Game</button></p>
-            </div>
-            <div class="target-shape-container">
-                <h2>Find this shape:</h2>
-                <div id="target-shape"></div>
-            </div>
-        </header>
+        <!-- Game Board - Full Screen -->
+        <div id="game-board"></div>
+        
+        <!-- Overlay UI Elements -->
+        <div class="ui-overlay">
+            <header>
+                <!-- Top banner with game controls only (no score) -->
+                <div class="score-container">
+                    <!-- Removed the Score label from here -->
+                    <div class="game-stats">
+                        <div class="attempts-display">
+                            <span class="stat-label">Attempts:</span>
+                            <div class="hearts-container">
+                                <span id="hearts">❤️❤️❤️</span>
+                            </div>
+                        </div>
+                        <p id="timer-display" class="timer-bubble">
+                            <span class="stat-label">Time:</span>
+                            <span id="timer">60</span>s
+                        </p>
+                    </div>
+                    <button id="quit-game-button" class="quit-button" aria-label="Stop the current game">Stop Game</button>
+                </div>
+                
+                <!-- Centered score display above the swinging banner -->
+                <div class="score-display-centered">
+                    <p>Score: <span id="score-centered">0</span></p>
+                </div>
+                
+                <div class="target-shape-container">
+                    <h2 id="find-shape-text">Find this shape:</h2>
+                    <div id="target-shape"></div>
+                </div>
+            </header>
+        </div>
 
         <!-- Game Setup Modal -->
         <div id="game-setup-modal" class="modal">
@@ -113,8 +136,7 @@
             </div>
         </div>
 
-        <div id="game-board"></div>
-
+        <!-- Game Over Screen (overlay) -->
         <div id="game-over" class="hidden">
             <h2>Game Over!</h2>
             <p>Your final score: <span id="final-score">0</span></p>
@@ -130,6 +152,17 @@
     <audio id="correct-sound" src="audio/correct.mp3" preload="auto"></audio>
     <audio id="wrong-sound" src="audio/wrong.mp3" preload="auto"></audio>
     <audio id="gameover-sound" src="audio/gameover.mp3" preload="auto"></audio>
+
+    <!-- End Game Confirmation Dialog -->
+    <div id="confirmation-overlay" class="confirmation-overlay"></div>
+    <div id="end-game-dialog" class="confirmation-dialog">
+        <h3>End Game?</h3>
+        <p>Are you sure you want to end the current game? Your progress will be lost.</p>
+        <div class="confirmation-buttons">
+            <button id="cancel-end-game" class="cancel-btn">Cancel</button>
+            <button id="confirm-end-game" class="confirm-btn">End Game</button>
+        </div>
+    </div>
 
     <script src="js/game.js" type="module"></script>
 </body>

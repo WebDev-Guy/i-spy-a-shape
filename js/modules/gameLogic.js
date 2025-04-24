@@ -1,5 +1,5 @@
 // Game logic functions
-import { gameState } from './gameState.js';
+import gameState from './gameState.js';
 import { elements } from './elements.js';
 import { gameConfig } from './config.js';
 import { getRandomItem, getRandomNumber, shuffleArray, announceTo } from './utils.js';
@@ -33,6 +33,13 @@ export function applyDifficultySettings() {
 
     // Update display
     elements.shapeQuantityDisplay.textContent = gameState.shapesQuantity;
+    
+    // Update the "Find this shape:" text to include matching rules based on difficulty
+    if (gameState.currentDifficulty === 'easy') {
+        elements.findShapeText.textContent = 'Find this shape: (Shape Only)';
+    } else {
+        elements.findShapeText.textContent = 'Find this shape: (Shape AND Color)';
+    }
 }
 
 // Generate random shapes for the game board
@@ -42,6 +49,22 @@ export function generateGameShapes(count, targetShapeType) {
     // Get current game board dimensions
     const boardWidth = elements.gameBoard.clientWidth;
     const boardHeight = elements.gameBoard.clientHeight;
+    
+    // Log board dimensions for debugging
+    console.log(`Game board dimensions: ${boardWidth}x${boardHeight}`);
+
+    // Safety check - ensure the board has reasonable dimensions
+    if (boardWidth < 100 || boardHeight < 100) {
+        console.warn("Game board dimensions are too small, forcing minimum size");
+        // Force minimum dimensions if board is too small
+        setTimeout(() => {
+            elements.gameBoard.style.minHeight = "300px";
+            elements.gameBoard.style.minWidth = "300px";
+            // Try again with proper dimensions
+            setTimeout(() => generateGameShapes(count, targetShapeType), 100);
+        }, 0);
+        return;
+    }
 
     // Get difficulty settings
     const diffSettings = gameConfig.difficulty[gameState.currentDifficulty];
@@ -49,17 +72,35 @@ export function generateGameShapes(count, targetShapeType) {
     // Get available shapes for current difficulty
     const availableShapes = getAvailableShapes();
 
-    // Prepare colors array for this round
+    // Use the target color from gameState that was set in createTargetShape
+    const targetShapeColor = gameState.targetColor;
+    
+    // Ensure we have the target color - if not, use a fallback
+    if (!targetShapeColor) {
+        console.error("Target color not found in gameState, using fallback");
+        gameState.targetColor = getRandomItem(gameConfig.colors);
+    }
+    
+    // Prepare colors array for this round, ensuring target color is included
     let roundColors = [...gameConfig.colors];
+    
+    // Ensure targetColor is in the colors array
+    if (!roundColors.includes(targetShapeColor)) {
+        roundColors.push(targetShapeColor);
+    }
+    
     if (diffSettings.distinctColors) {
         // Shuffle to ensure random selection
         shuffleArray(roundColors);
         // Limit to count+1 distinct colors (for target and all shapes)
         roundColors = roundColors.slice(0, count + 1);
+        
+        // Double-check that target color is still in the array after slicing
+        if (!roundColors.includes(targetShapeColor)) {
+            // Replace one color with the target color
+            roundColors[0] = targetShapeColor;
+        }
     }
-
-    // Target shape color
-    const targetShapeColor = getRandomItem(roundColors);
 
     // Adjust base size range based on screen width for responsive design
     let minSize = 60; // Increased from 55
@@ -80,36 +121,135 @@ export function generateGameShapes(count, targetShapeType) {
         maxSize = 70;
     }
 
-    // Ensure we always include at least one matching shape
-    let matchingShapeAdded = false;
+    // Calculate a more appropriate number of shapes based on screen area
+    // to avoid overcrowding on smaller screens
+    const boardArea = boardWidth * boardHeight;
+    const screenBasedMaxShapes = Math.min(count, Math.floor(boardArea / 20000));
+    const adjustedCount = Math.max(5, screenBasedMaxShapes);
+    
+    if (adjustedCount < count) {
+        console.log(`Reduced shape count from ${count} to ${adjustedCount} based on screen size`);
+    }
 
-    // Generate shapes
-    for (let i = 0; i < count; i++) {
-        let shapeType, isMatch, shapeColor;
+    // Track match flags
+    let shapeMatchAdded = false;
+    let colorMatchAdded = false;
+    let perfectMatchAdded = false; // Both shape and color match
 
-        // For the first shape, always make it a match
-        if (i === 0) {
+    // Improved positioning: Divide the board into a grid for better distribution
+    // This ensures shapes are spread more evenly across the viewport
+    const gridCellSize = Math.max(maxSize * 1.5, 150); // Make cells larger to spread shapes out more
+    const gridColumns = Math.floor(boardWidth / gridCellSize);
+    const gridRows = Math.floor(boardHeight / gridCellSize);
+    
+    // Create grid cells for placement
+    const gridCells = [];
+    for (let row = 0; row < gridRows; row++) {
+        for (let col = 0; col < gridColumns; col++) {
+            gridCells.push({
+                row,
+                col,
+                x: col * gridCellSize,
+                y: row * gridCellSize,
+                width: gridCellSize,
+                height: gridCellSize,
+                occupied: false
+            });
+        }
+    }
+    
+    // Shuffle grid cells for random positioning
+    shuffleArray(gridCells);
+    
+    // Generate shapes with improved distribution
+    for (let i = 0; i < adjustedCount; i++) {
+        let shapeType, shapeColor;
+        let isMatch = false;
+
+        // For medium and hard difficulties, ensure first shape is a perfect match
+        if (i === 0 && (gameState.currentDifficulty === 'medium' || gameState.currentDifficulty === 'hard')) {
+            // First shape will be a perfect match (shape + color)
             shapeType = targetShapeType;
+            shapeColor = targetShapeColor;
+            shapeMatchAdded = true;
+            colorMatchAdded = true;
+            perfectMatchAdded = true;
             isMatch = true;
-            matchingShapeAdded = true;
-            // 50% chance to match color too
-            shapeColor = Math.random() > 0.5 ? targetShapeColor : getRandomItem(roundColors);
-        } else {
-            // For other shapes, occasionally include the target shape
-            if (i < count / 3 || Math.random() < 0.7) {
+        } 
+        // For easy mode, ensure first shape matches just the shape
+        else if (i === 0 && gameState.currentDifficulty === 'easy') {
+            shapeType = targetShapeType;
+            // Random color in easy mode (but not the target color to make the game more interesting)
+            do {
+                shapeColor = getRandomItem(roundColors);
+            } while (shapeColor === targetShapeColor);
+            shapeMatchAdded = true;
+            isMatch = true;
+        }
+        // For remaining shapes, distribute randomly
+        else {
+            // Decide whether this should be a target shape
+            if (i < adjustedCount / 3 || Math.random() < 0.7) {
                 do {
                     shapeType = getRandomItem(availableShapes);
                 } while (shapeType === targetShapeType);
-                isMatch = false;
             } else {
                 shapeType = targetShapeType;
-                isMatch = true;
-                matchingShapeAdded = true;
+                shapeMatchAdded = true;
             }
-            shapeColor = getRandomItem(roundColors);
+            
+            // Decide color
+            if (Math.random() < 0.2 && !colorMatchAdded && gameState.currentDifficulty !== 'easy') {
+                shapeColor = targetShapeColor;
+                colorMatchAdded = true;
+            } else {
+                shapeColor = getRandomItem(roundColors);
+            }
+            
+            // Set isMatch based on difficulty
+            if (gameState.currentDifficulty === 'easy') {
+                isMatch = (shapeType === targetShapeType);
+            } else {
+                isMatch = (shapeType === targetShapeType && shapeColor === targetShapeColor);
+            }
         }
 
         const shapeSize = getRandomNumber(minSize, maxSize);
+        
+        // Get a grid cell for this shape
+        let cell = null;
+        if (gridCells.length > 0) {
+            cell = gridCells.pop(); // Take a cell from the shuffled array
+        } else {
+            // Fallback to random positioning if we run out of cells
+            console.log("Ran out of grid cells, using random positioning");
+            break;
+        }
+        
+        // Calculate position within the grid cell (add some randomness within the cell)
+        const cellPadding = 10;
+        const maxOffsetX = cell.width - shapeSize - (cellPadding * 2);
+        const maxOffsetY = cell.height - shapeSize - (cellPadding * 2);
+        
+        const offsetX = maxOffsetX > 0 ? getRandomNumber(cellPadding, maxOffsetX) : cellPadding;
+        const offsetY = maxOffsetY > 0 ? getRandomNumber(cellPadding, maxOffsetY) : cellPadding;
+        
+        const posX = cell.x + offsetX;
+        const posY = cell.y + offsetY;
+        
+        // Determine z-index based on match status and random factor for better overlap distribution
+        let zIndex = isMatch ? 20 : Math.floor(Math.random() * 10) + 1;
+        
+        // Every nth shape should have a higher z-index to distribute visibility
+        if (i % 3 === 0) {
+            zIndex += 5;
+        }
+        
+        // For the first few shapes, ensure higher z-index for visibility
+        if (i < 3) {
+            zIndex += 10;
+        }
+        
         const shape = {
             type: shapeType,
             color: shapeColor,
@@ -119,42 +259,139 @@ export function generateGameShapes(count, targetShapeType) {
                 diffSettings.rotationRange.max
             ),
             isMatch: isMatch,
-            x: getRandomNumber(10, boardWidth - shapeSize - 10),
-            y: getRandomNumber(10, boardHeight - shapeSize - 10),
+            x: posX,
+            y: posY,
             // For moving shapes mode
             vx: 0,
             vy: 0,
-            element: null // Reference to DOM element
+            element: null, // Reference to DOM element
+            zIndex: zIndex
         };
-
-        // Special case for shapes with different width/height ratio
-        if (shape.type === 'rectangle' || shape.type === 'oval') {
-            shape.x = getRandomNumber(10, boardWidth - (shape.size * 1.5) - 10);
-        }
 
         gameState.shapes.push(shape);
     }
 
-    // Double-check that we have at least one matching shape
-    // This is a fallback in case somehow all random selections avoided the target shape
-    if (!matchingShapeAdded) {
+    // If we ran out of grid cells, handle remaining shapes with random positioning
+    if (gameState.shapes.length < adjustedCount) {
+        const remainingCount = adjustedCount - gameState.shapes.length;
+        for (let i = 0; i < remainingCount; i++) {
+            // Generate shape type and color as before
+            let shapeType, shapeColor;
+            let isMatch = false;
+            
+            // Logic for shape type and color (same as above)
+            if (Math.random() < 0.7) {
+                do {
+                    shapeType = getRandomItem(availableShapes);
+                } while (shapeType === targetShapeType);
+            } else {
+                shapeType = targetShapeType;
+                shapeMatchAdded = true;
+            }
+            
+            if (Math.random() < 0.2 && !colorMatchAdded && gameState.currentDifficulty !== 'easy') {
+                shapeColor = targetShapeColor;
+                colorMatchAdded = true;
+            } else {
+                shapeColor = getRandomItem(roundColors);
+            }
+            
+            // Set isMatch based on difficulty
+            if (gameState.currentDifficulty === 'easy') {
+                isMatch = (shapeType === targetShapeType);
+            } else {
+                isMatch = (shapeType === targetShapeType && shapeColor === targetShapeColor);
+            }
+            
+            const shapeSize = getRandomNumber(minSize, maxSize);
+            
+            // Random position with edge margin
+            const edgeMargin = 20;
+            const posX = getRandomNumber(edgeMargin, boardWidth - shapeSize - edgeMargin);
+            const posY = getRandomNumber(edgeMargin, boardHeight - shapeSize - edgeMargin);
+            
+            let zIndex = isMatch ? 20 : Math.floor(Math.random() * 10) + 1;
+            
+            const shape = {
+                type: shapeType,
+                color: shapeColor,
+                size: shapeSize,
+                rotation: getRandomNumber(
+                    diffSettings.rotationRange.min,
+                    diffSettings.rotationRange.max
+                ),
+                isMatch: isMatch,
+                x: posX,
+                y: posY,
+                vx: 0,
+                vy: 0,
+                element: null,
+                zIndex: zIndex
+            };
+            
+            gameState.shapes.push(shape);
+        }
+    }
+
+    // Double-check that we have at least one correctly matching shape
+    let hasCorrectMatch = gameState.shapes.some(shape => shape.isMatch);
+    
+    if (!hasCorrectMatch) {
         console.log("No matching shape was added - adding one now");
 
-        // Replace the last shape with a matching one
+        // Replace the last shape with an appropriate match
         const lastIndex = gameState.shapes.length - 1;
         const lastShape = gameState.shapes[lastIndex];
 
         lastShape.type = targetShapeType;
+        lastShape.zIndex = 30; // Very high z-index to ensure visibility
+        
+        // For medium/hard, color must match too
+        if (gameState.currentDifficulty !== 'easy') {
+            lastShape.color = targetShapeColor;
+        }
+        
         lastShape.isMatch = true;
+        
+        // Position in a more central area
+        lastShape.x = boardWidth / 2 - lastShape.size / 2 + getRandomNumber(-50, 50);
+        lastShape.y = boardHeight / 2 - lastShape.size / 2 + getRandomNumber(-50, 50);
+    }
 
-        // If it's a rectangle or oval, adjust position
-        if (lastShape.type === 'rectangle' || lastShape.type === 'oval') {
-            lastShape.x = getRandomNumber(10, boardWidth - (lastShape.size * 1.5) - 10);
+    // Ensure matching shapes are distributed around the board (not all in one area)
+    const matchingShapes = gameState.shapes.filter(shape => shape.isMatch);
+    if (matchingShapes.length > 1) {
+        // If we have multiple matching shapes, ensure they're in different quadrants
+        const quadrants = [
+            { minX: 0, maxX: boardWidth/2, minY: 0, maxY: boardHeight/2 },             // top-left
+            { minX: boardWidth/2, maxX: boardWidth, minY: 0, maxY: boardHeight/2 },     // top-right
+            { minX: 0, maxX: boardWidth/2, minY: boardHeight/2, maxY: boardHeight },    // bottom-left
+            { minX: boardWidth/2, maxX: boardWidth, minY: boardHeight/2, maxY: boardHeight } // bottom-right
+        ];
+        
+        // Shuffle quadrants
+        shuffleArray(quadrants);
+        
+        // Move some matching shapes to different quadrants
+        for (let i = 0; i < Math.min(matchingShapes.length, quadrants.length); i++) {
+            const shape = matchingShapes[i];
+            const quadrant = quadrants[i];
+            
+            // Keep a margin from edges
+            const margin = Math.max(30, shape.size / 2);
+            
+            // Place within the quadrant with some randomness
+            shape.x = getRandomNumber(quadrant.minX + margin, quadrant.maxX - shape.size - margin);
+            shape.y = getRandomNumber(quadrant.minY + margin, quadrant.maxY - shape.size - margin);
         }
     }
 
-    // Shuffle the shapes array to randomize their layout
-    shuffleArray(gameState.shapes);
+    // Ensure shapes have proper z-index values
+    gameState.shapes.forEach(shape => {
+        if (shape.isMatch) {
+            shape.zIndex += 10; // Ensure matching shapes have higher z-index
+        }
+    });
 
     // Assign velocity for moving shapes mode if active
     if (gameState.currentDifficulty === 'hard') {
@@ -179,6 +416,9 @@ export function generateGameShapes(count, targetShapeType) {
 // Start a new round with a new target shape and new game shapes
 export function startNewRound() {
     clearGameBoard();
+    
+    // Ensure game board has proper dimensions before generating shapes
+    ensureGameBoardDimensions();
 
     // Get available shapes for current difficulty
     const availableShapes = getAvailableShapes();
@@ -203,12 +443,35 @@ export function startMovingShapes() {
 
     // Animation function for moving shapes
     function moveShapes() {
+        // Check if game is over first - don't continue animation in that case
+        if (gameState.gameOver) {
+            console.log('Game over detected in animation loop - stopping animation');
+            stopMovingShapes();
+            return;
+        }
+
         // Get board dimensions
         const boardWidth = elements.gameBoard.clientWidth;
         const boardHeight = elements.gameBoard.clientHeight;
 
+        // Safety check - if board dimensions are invalid, don't continue
+        if (boardWidth <= 0 || boardHeight <= 0) {
+            console.warn('Invalid game board dimensions, stopping animation');
+            stopMovingShapes();
+            return;
+        }
+
         // Move each shape
+        if (!gameState.shapes || gameState.shapes.length === 0) {
+            console.warn('No shapes found, stopping animation');
+            stopMovingShapes();
+            return;
+        }
+
         gameState.shapes.forEach(shape => {
+            // Skip if shape is invalid
+            if (!shape) return;
+            
             // Update position
             shape.x += shape.vx;
             shape.y += shape.vy;
@@ -248,19 +511,30 @@ export function startMovingShapes() {
             }
         });
 
-        // Continue animation if game is not over
-        if (!gameState.gameOver) {
+        // Only continue animation if game is not over and we have shapes
+        if (!gameState.gameOver && gameState.shapes && gameState.shapes.length > 0) {
+            // Store the ID so we can cancel it later
             gameState.animationFrameId = requestAnimationFrame(moveShapes);
+        } else {
+            console.log('Stopping animation - game over or no shapes');
+            stopMovingShapes();
         }
     }
 
-    // Start animation
-    gameState.animationFrameId = requestAnimationFrame(moveShapes);
+    // Start animation only if we have shapes and game is not over
+    if (!gameState.gameOver && gameState.shapes && gameState.shapes.length > 0) {
+        // Start the first frame - subsequent frames will be requested inside moveShapes
+        gameState.animationFrameId = requestAnimationFrame(moveShapes);
+    } else {
+        console.log('Not starting animation - game over or no shapes');
+    }
 }
 
-// Stop moving shapes
+// Function to stop shape movement 
 export function stopMovingShapes() {
+    // Cancel any ongoing animation frame
     if (gameState.animationFrameId) {
+        console.log('Cancelling animation frame:', gameState.animationFrameId);
         cancelAnimationFrame(gameState.animationFrameId);
         gameState.animationFrameId = null;
     }
@@ -273,10 +547,21 @@ export function handleShapeClick(shape, event) {
     // Prevent event bubbling to avoid multiple clicks
     event.stopPropagation();
 
-    console.log('Clicked shape:', shape.type);
-    console.log('Target shape:', gameState.targetShape);
+    console.log('Clicked shape:', shape.type, shape.color);
+    console.log('Target shape:', gameState.targetShape, gameState.targetColor);
 
-    if (shape.type === gameState.targetShape) {
+    // Check for correct match based on difficulty level
+    let isCorrectMatch = false;
+
+    if (gameState.currentDifficulty === 'easy') {
+        // In easy mode, only shape type matters
+        isCorrectMatch = shape.type === gameState.targetShape;
+    } else {
+        // In medium and hard modes, both shape type AND color must match
+        isCorrectMatch = shape.type === gameState.targetShape && shape.color === gameState.targetColor;
+    }
+
+    if (isCorrectMatch) {
         // Correct match
         gameState.score++;
 
@@ -298,11 +583,8 @@ export function handleShapeClick(shape, event) {
             const diffSettings = gameConfig.difficulty[gameState.currentDifficulty];
             let bonus = diffSettings.timeBonus.correct;
 
-            // Check for color match bonus
-            const targetShapeElement = elements.targetShape.firstChild;
-            const targetShapeColor = targetShapeElement.style.backgroundColor;
-
-            if (shape.color === targetShapeColor) {
+            // In easy mode, add color match bonus if colors happen to match
+            if (gameState.currentDifficulty === 'easy' && shape.color === gameState.targetColor) {
                 bonus += diffSettings.timeBonus.colorMatch;
             }
 
@@ -322,6 +604,19 @@ export function handleShapeClick(shape, event) {
         gameState.attemptsLeft--;
         updateScoreDisplay();
 
+        // Add shake animation to the clicked shape for visual feedback (accessibility)
+        if (shape.element) {
+            // Add the shake class
+            shape.element.classList.add('shake');
+            
+            // Remove the shake class after the animation completes
+            setTimeout(() => {
+                if (shape.element) {
+                    shape.element.classList.remove('shake');
+                }
+            }, 500); // Match animation duration (0.5s)
+        }
+
         // Play wrong sound
         playSound('wrong');
 
@@ -339,19 +634,95 @@ export function handleShapeClick(shape, event) {
     }
 }
 
-// Update the score and attempts display
+// Update the score and attempts display with hearts for lives
 export function updateScoreDisplay() {
-    elements.score.textContent = gameState.score;
-    elements.attempts.textContent = gameState.attemptsLeft;
+    // Update the centered score display and add pulse animation
+    const scoreCentered = document.getElementById('score-centered');
+    if (scoreCentered) {
+        scoreCentered.textContent = gameState.score;
+        
+        // Only add pulse animation if the score was incremented (correct match)
+        // We can check if score changed by comparing with previousScore in gameState
+        if (gameState.previousScore !== undefined && gameState.score > gameState.previousScore) {
+            // Add pulse animation class
+            scoreCentered.parentElement.classList.add('score-pulse');
+            
+            // Remove the class after animation completes
+            setTimeout(() => {
+                scoreCentered.parentElement.classList.remove('score-pulse');
+            }, 500);
+        }
+        
+        // Store current score for next comparison
+        gameState.previousScore = gameState.score;
+    }
+    
+    // Update hearts display for remaining attempts
+    const heartsElement = document.getElementById('hearts');
+    if (heartsElement) {
+        let heartsDisplay = '';
+        // Add full hearts for remaining attempts
+        for (let i = 0; i < gameState.attemptsLeft; i++) {
+            heartsDisplay += '❤️';
+        }
+        // Add empty hearts for lost attempts
+        for (let i = gameState.attemptsLeft; i < gameConfig.maxAttempts; i++) {
+            heartsDisplay += '🤍';
+        }
+        heartsElement.textContent = heartsDisplay;
+        
+        // Add animation effect when losing a heart
+        if (gameState.previousAttempts && gameState.previousAttempts > gameState.attemptsLeft) {
+            heartsElement.classList.add('heart-pulse');
+            setTimeout(() => {
+                heartsElement.classList.remove('heart-pulse');
+            }, 500);
+        }
+        
+        // Store current attempts for next comparison
+        gameState.previousAttempts = gameState.attemptsLeft;
+        
+        // Add aria-label for screen readers to announce attempts left
+        heartsElement.setAttribute('aria-label', `${gameState.attemptsLeft} attempts remaining`);
+    }
+    
+    // If this is the first successful match, fade out the match instructions
+    if (gameState.score === 1) {
+        fadeOutMatchInstructions();
+    }
+}
+
+// Fade out match instructions after first successful identification
+export function fadeOutMatchInstructions() {
+    const instructionElement = document.getElementById('match-instructions');
+    if (instructionElement) {
+        // Add transition for smooth fade out
+        instructionElement.style.transition = 'opacity 1.5s ease-out';
+        instructionElement.style.opacity = '0';
+        
+        // Remove from DOM after fade completes
+        setTimeout(() => {
+            if (instructionElement.parentNode) {
+                instructionElement.parentNode.removeChild(instructionElement);
+            }
+        }, 1500);
+    }
 }
 
 // Launch confetti animation
 export function launchConfetti(x, y) {
     // Make sure canvas is properly sized
     resizeConfettiCanvas();
+    
+    // Cancel any existing confetti animation first
+    if (gameState.confettiAnimationId) {
+        cancelAnimationFrame(gameState.confettiAnimationId);
+        gameState.confettiAnimationId = null;
+    }
 
-    // Show canvas
+    // Show canvas and ensure it remains visible during animation
     elements.confettiCanvas.classList.remove('hidden');
+    elements.confettiCanvas.style.zIndex = "100"; // Set high z-index
 
     // Create confetti particles
     const particles = [];
@@ -373,15 +744,30 @@ export function launchConfetti(x, y) {
                 y: (Math.random() * -15 - 10) * velocityFactor
             },
             rotation: Math.random() * 360,
-            rotationSpeed: Math.random() * 10 - 5
+            rotationSpeed: Math.random() * 10 - 5,
+            opacity: 1 // Start fully opaque
         });
     }
 
     // Get confetti canvas context
     const confettiCtx = elements.confettiCanvas.getContext('2d');
+    
+    // Track animation state
+    let animationCompleted = false;
+    let animationDuration = 0;
+    const MAX_ANIMATION_TIME = 3000; // 3 seconds max
 
     // Animation function
-    function animateConfetti() {
+    function animateConfetti(timestamp) {
+        // If this is the first frame, initialize the start time
+        if (!animationDuration) {
+            animationDuration = 0;
+        } else {
+            // Track animation duration to prevent endless animations
+            animationDuration += 16; // Approximate frame time
+        }
+
+        // Clear the canvas for this frame
         confettiCtx.clearRect(0, 0, elements.confettiCanvas.width, elements.confettiCanvas.height);
 
         let stillActive = false;
@@ -389,12 +775,16 @@ export function launchConfetti(x, y) {
         for (let i = 0; i < particles.length; i++) {
             const p = particles[i];
 
-            // Only animate if particle is visible
-            if (p.y < elements.confettiCanvas.height) {
+            // Only continue animation if:
+            // 1. Particle is still on screen vertically
+            // 2. Particle still has some opacity
+            // 3. We haven't exceeded max animation time
+            if (p.y < elements.confettiCanvas.height + 100 && p.opacity > 0.1 && animationDuration < MAX_ANIMATION_TIME) {
                 stillActive = true;
 
-                // Draw particle
+                // Draw particle with current opacity
                 confettiCtx.save();
+                confettiCtx.globalAlpha = p.opacity;
                 confettiCtx.translate(p.x, p.y);
                 confettiCtx.rotate(p.rotation * Math.PI / 180);
                 confettiCtx.fillStyle = p.color;
@@ -410,20 +800,51 @@ export function launchConfetti(x, y) {
 
                 // Update rotation
                 p.rotation += p.rotationSpeed;
+                
+                // Gradually reduce opacity as particle falls
+                // This creates a fade-out effect
+                if (p.y > elements.confettiCanvas.height - 200) {
+                    p.opacity -= 0.02; // Fade out gradually
+                }
             }
         }
 
-        // Continue animation if there are still visible particles
-        if (stillActive) {
-            requestAnimationFrame(animateConfetti);
+        // Continue animation if there are still visible particles and game is not over
+        if (stillActive && !gameState.gameOver && animationDuration < MAX_ANIMATION_TIME) {
+            // Store the animation ID in gameState so it can be canceled if needed
+            gameState.confettiAnimationId = requestAnimationFrame(animateConfetti);
         } else {
-            // Hide canvas when animation is complete
-            elements.confettiCanvas.classList.add('hidden');
+            // Stop the animation when all particles are gone or game is over
+            finalizeAnimation();
         }
+    }
+    
+    // Function to ensure proper cleanup when animation ends
+    function finalizeAnimation() {
+        // Only run this once
+        if (animationCompleted) return;
+        animationCompleted = true;
+        
+        // Cancel any lingering animation frames
+        if (gameState.confettiAnimationId) {
+            cancelAnimationFrame(gameState.confettiAnimationId);
+            gameState.confettiAnimationId = null;
+        }
+        
+        // Ensure canvas is completely cleared
+        confettiCtx.clearRect(0, 0, elements.confettiCanvas.width, elements.confettiCanvas.height);
+        
+        // Hide the canvas properly
+        elements.confettiCanvas.classList.add('hidden');
+        
+        console.log("Confetti animation completed");
     }
 
     // Start animation
-    animateConfetti();
+    gameState.confettiAnimationId = requestAnimationFrame(animateConfetti);
+    
+    // Safety timeout - force cleanup if animation somehow gets stuck
+    setTimeout(finalizeAnimation, MAX_ANIMATION_TIME + 100);
 }
 
 // Play sound effect
@@ -623,4 +1044,27 @@ export function loadHighScores() {
     }
 
     return [];
+}
+
+// Force game board to have proper dimensions
+export function ensureGameBoardDimensions() {
+    // Get the game board element
+    const gameBoard = elements.gameBoard;
+    
+    // Set minimum dimensions
+    gameBoard.style.minHeight = '300px';
+    gameBoard.style.minWidth = '300px';
+    
+    // Force layout recalculation
+    void gameBoard.offsetHeight;
+    
+    // Log game board dimensions
+    console.log(`Enforced game board dimensions: ${gameBoard.clientWidth}x${gameBoard.clientHeight}`);
+    
+    // If dimensions are still problematic, set explicit dimensions
+    if (gameBoard.clientWidth < 300 || gameBoard.clientHeight < 300) {
+        gameBoard.style.height = '70vh';
+        gameBoard.style.width = '100%';
+        console.log('Set explicit dimensions due to insufficient size');
+    }
 }

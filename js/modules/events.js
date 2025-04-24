@@ -1,5 +1,5 @@
 // Game event handlers and UI interactions
-import { gameState, resetGameState } from './gameState.js';
+import gameState, { resetGameState } from './gameState.js';
 import { elements, initAudioSettings } from './elements.js';
 import { gameConfig } from './config.js';
 import { capitalize } from './utils.js';
@@ -14,7 +14,8 @@ import {
     loadHighScores,
     startTimer,
     loadHighScoresByMode,
-    generateGameShapes
+    generateGameShapes,
+    ensureGameBoardDimensions
 } from './gameLogic.js';
 import { clearGameBoard, resizeConfettiCanvas } from './rendering.js';
 
@@ -38,6 +39,9 @@ export function initEventListeners() {
             // Update current difficulty
             gameState.currentDifficulty = button.dataset.difficulty;
 
+            // Apply difficulty settings - update match requirement text
+            applyDifficultySettings();
+
             // Set default shape quantities based on difficulty
             if (gameState.currentDifficulty === 'medium') {
                 gameState.shapesQuantity = 15;
@@ -60,6 +64,13 @@ export function initEventListeners() {
 
             // Update current mode
             gameState.currentMode = button.dataset.mode;
+            
+            // Toggle timer visibility based on game mode
+            if (gameState.currentMode === 'timed') {
+                elements.timerDisplay.classList.remove('hidden');
+            } else {
+                elements.timerDisplay.classList.add('hidden');
+            }
 
             // Update tooltips based on the selected game mode
             updateDifficultyTooltips(gameState.currentMode);
@@ -86,11 +97,17 @@ export function initEventListeners() {
     elements.startGameBtn.addEventListener('click', startGameFromSetup);
 
     // Quit button
-    // Create quit button
-    const quitButton = document.getElementById('quit-game-button');
+    elements.quitButton.addEventListener('click', () => {
+        showEndGameConfirmation();
+    });
 
-    // Add click event to end the game
-    quitButton.addEventListener('click', () => {
+    // End Game Confirmation Dialog Buttons
+    document.getElementById('cancel-end-game').addEventListener('click', () => {
+        hideEndGameConfirmation();
+    });
+
+    document.getElementById('confirm-end-game').addEventListener('click', () => {
+        hideEndGameConfirmation();
         endGame();
     });
 
@@ -174,22 +191,41 @@ export function createNameErrorMessage() {
 // Start the game
 export function startGame() {
     // Reset game state
-    resetGameState();
-
-    // Update score display
+    gameState.gameOver = false;
+    gameState.score = 0;
+    gameState.attemptsLeft = gameConfig.maxAttempts;
+    gameState.targetShape = null;
+    gameState.shapes = [];
+    
+    // Clear any existing shapes
+    clearGameBoard();
+    
+    // Force a layout recalculation to ensure game board dimensions
+    ensureGameBoardDimensions();
+    
+    // Update displays
     updateScoreDisplay();
 
-    // Hide game over screen
-    hideGameOverScreen();
+    // Start timer if in timed mode
+    if (gameState.currentMode === 'timed') {
+        // Set time based on difficulty
+        const diffSettings = gameConfig.difficulty[gameState.currentDifficulty];
+        gameState.timeRemaining = diffSettings.timeLimit;
+        elements.timer.textContent = gameState.timeRemaining;
+        elements.timerDisplay.classList.remove('hidden');
+        startTimer();
+    } else {
+        // Hide timer in classic mode
+        elements.timerDisplay.classList.add('hidden');
+    }
 
-    // Apply difficulty settings
-    applyDifficultySettings();
-
-    // Set up based on game mode
-    setupGameMode();
-
-    // Start first round
-    startNewRound();
+    // Hide setup modal
+    elements.setupModal.classList.add('hidden');
+    
+    // Wait a brief moment to ensure DOM is ready before starting the first round
+    setTimeout(() => {
+        startNewRound();
+    }, 100);
 }
 
 // Setup game mode (classic, timed)
@@ -219,7 +255,10 @@ export function setupGameMode() {
 // Update score display
 export function updateScoreDisplay() {
     elements.score.textContent = gameState.score;
-    elements.attempts.textContent = gameState.attemptsLeft;
+    
+    // Update hearts display based on attempts left
+    const heartSymbol = '❤️';
+    elements.attempts.textContent = heartSymbol.repeat(gameState.attemptsLeft);
 }
 
 // Restart the game
@@ -399,4 +438,32 @@ export function updateDifficultyTooltips(mode) {
             }
         }
     });
+}
+
+// Show end game confirmation dialog
+export function showEndGameConfirmation() {
+    // Pause the game while confirmation is shown
+    if (gameState.currentMode === 'timed') {
+        stopTimer();
+    }
+    stopMovingShapes();
+    
+    // Show the confirmation dialog and overlay
+    document.getElementById('confirmation-overlay').style.display = 'block';
+    document.getElementById('end-game-dialog').style.display = 'block';
+}
+
+// Hide end game confirmation dialog
+export function hideEndGameConfirmation() {
+    // Hide the confirmation dialog and overlay
+    document.getElementById('confirmation-overlay').style.display = 'none';
+    document.getElementById('end-game-dialog').style.display = 'none';
+    
+    // Resume the game
+    if (!gameState.gameOver) {
+        if (gameState.currentMode === 'timed') {
+            startTimer();
+        }
+        startMovingShapes();
+    }
 }

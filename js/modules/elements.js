@@ -1,7 +1,7 @@
 // DOM Elements management
 export const elements = {
-    score: document.getElementById('score'),
-    attempts: document.getElementById('attempts'),
+    score: document.getElementById('score-centered'), // Updated to match actual HTML ID
+    attempts: document.getElementById('hearts'), // Changed to hearts since that's the element showing attempts
     targetShape: document.getElementById('target-shape'),
     gameBoard: document.getElementById('game-board'),
     gameOverScreen: document.getElementById('game-over'),
@@ -21,6 +21,9 @@ export const elements = {
     highScoresList: document.getElementById('high-scores-list'),
     timerDisplay: document.getElementById('timer-display'),
     timer: document.getElementById('timer'),
+    
+    // Find shape text element
+    findShapeText: document.getElementById('find-shape-text'),
 
     // Leaderboard elements
     leaderboardTabs: null, // Will be created dynamically
