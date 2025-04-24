@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I Spy a Shape</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <!-- Game Board - Full Screen -->
+        <div id="game-board"></div>
+        
+        <!-- Overlay UI Elements -->
+        <div class="ui-overlay">
+            <header>
+                <!-- Top banner with game controls only (no score) -->
+                <div class="score-container">
+                    <!-- Removed the Score label from here -->
+                    <div class="game-stats">
+                        <div class="attempts-display">
+                            <span class="stat-label">Attempts:</span>
+                            <div class="hearts-container">
+                                <span id="hearts">❤️❤️❤️</span>
+                            </div>
+                        </div>
+                        <p id="timer-display" class="timer-bubble">
+                            <span class="stat-label">Time:</span>
+                            <span id="timer">60</span>s
+                        </p>
+                    </div>
+                    <button id="quit-game-button" class="quit-button" aria-label="Stop the current game">Stop Game</button>
+                </div>
+                
+                <!-- Centered score display above the swinging banner -->
+                <div class="score-display-centered">
+                    <p>Score: <span id="score-centered">0</span></p>
+                </div>
+                
+                <div class="target-shape-container">
+                    <h2 id="find-shape-text">Find this shape:</h2>
+                    <div id="target-shape"></div>
+                </div>
+            </header>
+        </div>
+
+        <!-- Game Setup Modal -->
+        <div id="game-setup-modal" class="modal">
+            <div class="modal-content">
+                <h2><img id="logo" src="images/mascot.png" alt="I Spy a Shape Logo" /></h2>
+
+                <div class="setup-section">
+                    <input type="text" id="player-name" placeholder="Enter your name">
+                </div>
+
+                <div class="setup-section">
+                    <h3>Difficulty Level</h3>
+                    <div class="option-buttons difficulty-options">
+                        <button class="option-btn selected" data-difficulty="easy">
+                            Easy
+                            <span class="tooltip">
+                                4-8 shapes<br>
+                                90 seconds time limit<br>
+                                Distinct colors<br>
+                                Minimal rotation<br>
+                                +5s per correct match<br>
+                                +8s for color match
+                            </span>
+                        </button>
+                        <button class="option-btn" data-difficulty="medium">
+                            Medium
+                            <span class="tooltip">
+                                6-12 shapes<br>
+                                60 seconds time limit<br>
+                                Similar colors allowed<br>
+                                More rotation<br>
+                                +3s per correct match<br>
+                                +5s for color match
+                            </span>
+                        </button>
+                        <button class="option-btn" data-difficulty="hard">
+                            Hard
+                            <span class="tooltip">
+                                10-18 shapes<br>
+                                45 seconds time limit<br>
+                                Similar colors<br>
+                                Full rotation<br>
+                                +2s per correct match<br>
+                                +3s for color match
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setup-section">
+                    <h3>Game Mode</h3>
+                    <div class="option-buttons mode-options">
+                        <button class="option-btn selected" data-mode="classic">
+                            Classic
+                            <span class="tooltip">
+                                Standard gameplay<br>
+                                Find matching shapes<br>
+                                3 attempts per round
+                            </span>
+                        </button>
+                        <button class="option-btn" data-mode="timed">
+                            Timed
+                            <span class="tooltip">
+                                Race against the clock<br>
+                                Gain time for correct matches<br>
+                                Lose time for mistakes<br>
+                                Bonus time for color matches
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setup-section">
+                    <h3>Number of Shapes</h3>
+                    <div class="shape-quantity">
+                        <button id="decrease-shapes">-</button>
+                        <span id="shape-quantity-display">10</span>
+                        <button id="increase-shapes">+</button>
+                    </div>
+                </div>
+
+                <button id="start-game-btn">Start Game</button>
+
+                <div class="high-scores-section">
+                    <div id="high-scores-list">
+                        <!-- High scores will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen (overlay) -->
+        <div id="game-over" class="hidden">
+            <h2>Game Over!</h2>
+            <p>Your final score: <span id="final-score">0</span></p>
+            <button id="restart-button">Try Again</button>
+            <button id="back-to-menu-button">Back to Menu</button>
+        </div>
+
+        <!-- Confetti canvas for animations -->
+        <canvas id="confetti-canvas"></canvas>
+    </div>
+
+    <!-- Audio elements for sound effects -->
+    <audio id="correct-sound" src="audio/correct.mp3" preload="auto"></audio>
+    <audio id="wrong-sound" src="audio/wrong.mp3" preload="auto"></audio>
+    <audio id="gameover-sound" src="audio/gameover.mp3" preload="auto"></audio>
+
+    <!-- End Game Confirmation Dialog -->
+    <div id="confirmation-overlay" class="confirmation-overlay"></div>
+    <div id="end-game-dialog" class="confirmation-dialog">
+        <h3>End Game?</h3>
+        <p>Are you sure you want to end the current game? Your progress will be lost.</p>
+        <div class="confirmation-buttons">
+            <button id="cancel-end-game" class="cancel-btn">Cancel</button>
+            <button id="confirm-end-game" class="confirm-btn">End Game</button>
+        </div>
+    </div>
+
+    <script src="js/game.js" type="module"></script>
+</body>
+
+</html>
